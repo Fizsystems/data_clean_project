@@ -1,268 +1,243 @@
 """
-Traveler & Travel Records GUI App
+Traveler & Travel Records GUI App (Auto-Load Cleaned CSVs)
 Author: Olusoji Matthew
-Description: Tkinter-based GUI to display, visualize, save, and print traveler travel records.
-Includes validation to ensure traveler IDs match and dates are valid.
+Description: Load, display, and visualize travel records with options to save or print charts.
 """
 
 import tkinter as tk
-from tkinter import ttk, messagebox, filedialog
+from tkinter import ttk, filedialog, messagebox
 import pandas as pd
+from datetime import datetime
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 import os
 
-# ------------------------------
-# Global DataFrames
-# ------------------------------
-travelers = pd.DataFrame()
-travels = pd.DataFrame()
-current_fig = None  # To store the current chart figure
-
-# ------------------------------
-# Functions
-# ------------------------------
+# -------------------------------
+# Global Variables
+# -------------------------------
+travelers_df = pd.DataFrame()
+travels_df = pd.DataFrame()
 
 
-def load_default_csvs():
-    """Load default travelers.csv and travels.csv if they exist"""
-    global travelers, travels
-    if os.path.exists("travelers.csv"):
-        load_travelers_csv("travelers.csv")
+# -------------------------------
+# Load CSV Functions
+# -------------------------------
+def load_travelers(file_path=None):
+    global travelers_df
+    if not file_path:
+        # Try loading cleaned file automatically
+        if os.path.exists("travelers_clean.csv"):
+            file_path = "travelers_clean.csv"
+        else:
+            file_path = filedialog.askopenfilename(filetypes=[("CSV Files", "*.csv")])
+            if not file_path:
+                return
+    travelers_df = pd.read_csv(file_path)
+    populate_travelers_table()
+    populate_traveler_dropdown()
+
+
+def load_travels(file_path=None):
+    global travels_df
+    if not file_path:
+        # Try loading cleaned file automatically
+        if os.path.exists("travels_clean.csv"):
+            file_path = "travels_clean.csv"
+        else:
+            file_path = filedialog.askopenfilename(filetypes=[("CSV Files", "*.csv")])
+            if not file_path:
+                return
+    travels_df = pd.read_csv(file_path)
+    populate_travels_table()
+    # Update chart for all travelers
+    plot_chart(travels_df)
+
+
+# -------------------------------
+# Populate Tables
+# -------------------------------
+def populate_travelers_table():
+    for row in traveler_table.get_children():
+        traveler_table.delete(row)
+    for _, row in travelers_df.iterrows():
+        traveler_table.insert(
+            "",
+            "end",
+            values=(
+                row["traveler_id"],
+                row["name"],
+                row["email"],
+                row["phone"],
+                row["passport_number"],
+            ),
+        )
+
+
+def populate_travels_table(filtered_df=None):
+    for row in travel_table.get_children():
+        travel_table.delete(row)
+    df = filtered_df if filtered_df is not None else travels_df
+    for _, row in df.iterrows():
+        travel_table.insert(
+            "",
+            "end",
+            values=(
+                row["travel_id"],
+                row["traveler_id"],
+                row["destination"],
+                row["departure_date"],
+                row["return_date"],
+                row["purpose"],
+            ),
+        )
+
+
+# -------------------------------
+# Traveler Dropdown
+# -------------------------------
+def populate_traveler_dropdown():
+    if travelers_df.empty:
+        traveler_dropdown["values"] = ["All Travelers"]
+        traveler_dropdown.current(0)
+        return
+    traveler_dropdown["values"] = ["All Travelers"] + travelers_df["name"].tolist()
+    traveler_dropdown.current(0)
+
+
+def on_traveler_select(event):
+    selected = traveler_dropdown.get()
+    if selected == "All Travelers":
+        populate_travels_table()
+        plot_chart(travels_df)
     else:
-        messagebox.showwarning(
-            "Warning", "travelers.csv not found in project directory."
-        )
-    if os.path.exists("travels.csv"):
-        load_travels_csv("travels.csv")
-    else:
-        messagebox.showwarning("Warning", "travels.csv not found in project directory.")
+        traveler_id = travelers_df[travelers_df["name"] == selected][
+            "traveler_id"
+        ].values[0]
+        filtered_df = travels_df[travels_df["traveler_id"] == traveler_id]
+        populate_travels_table(filtered_df)
+        plot_chart(filtered_df)
 
 
-def load_travelers_csv(file_path=None):
-    """Load travelers CSV (default or user-selected)"""
-    global travelers
-    if not file_path:
-        file_path = filedialog.askopenfilename(
-            title="Select Travelers CSV", filetypes=[("CSV Files", "*.csv")]
-        )
-    if not file_path:
-        return
-    travelers = pd.read_csv(file_path)
-    required_cols = {"traveler_id", "name"}
-    if not required_cols.issubset(travelers.columns):
-        messagebox.showerror(
-            "Error", f"Travelers CSV must contain columns: {required_cols}"
-        )
-        travelers = pd.DataFrame()
-        return
-    travelers["name"] = travelers["name"].fillna("Unknown").str.title()
-    traveler_combo["values"] = travelers["name"].tolist()
-    messagebox.showinfo(
-        "Success", f"Loaded travelers data from {os.path.basename(file_path)}"
-    )
-
-
-def load_travels_csv(file_path=None):
-    """Load travels CSV (default or user-selected)"""
-    global travels
-    if not file_path:
-        file_path = filedialog.askopenfilename(
-            title="Select Travels CSV", filetypes=[("CSV Files", "*.csv")]
-        )
-    if not file_path:
-        return
-    travels = pd.read_csv(file_path)
-    required_cols = {
-        "travel_id",
-        "traveler_id",
-        "destination",
-        "departure_date",
-        "return_date",
-        "purpose",
-    }
-    if not required_cols.issubset(travels.columns):
-        messagebox.showerror(
-            "Error", f"Travels CSV must contain columns: {required_cols}"
-        )
-        travels = pd.DataFrame()
-        return
-    travels["destination"] = travels["destination"].fillna("Unknown").str.title()
-    travels["purpose"] = travels["purpose"].fillna("Unknown").str.capitalize()
-    travels["departure_date"] = pd.to_datetime(
-        travels["departure_date"], errors="coerce"
-    )
-    travels["return_date"] = pd.to_datetime(travels["return_date"], errors="coerce")
-    travels.dropna(subset=["departure_date", "return_date"], inplace=True)
-    if travels.empty:
-        messagebox.showwarning("Warning", "No valid travel records found in the CSV.")
-    else:
-        messagebox.showinfo(
-            "Success", f"Loaded travel records from {os.path.basename(file_path)}"
-        )
-
-
-def show_travels():
-    """Display traveler records and plot trips"""
-    global current_fig
-    if travelers.empty or travels.empty:
-        messagebox.showwarning(
-            "Data Missing", "Please load travelers and travels CSV first."
-        )
-        return
-    selected_name = traveler_var.get()
-    if not selected_name:
-        messagebox.showwarning("Warning", "Please select a traveler.")
-        return
-    # Check if traveler exists
-    traveler_row = travelers[travelers["name"] == selected_name]
-    if traveler_row.empty:
-        messagebox.showerror(
-            "Error", f"Traveler '{selected_name}' not found in travelers.csv"
-        )
-        return
-    t_id = traveler_row["traveler_id"].values[0]
-
-    traveler_travels = travels[travels["traveler_id"] == t_id]
-    if traveler_travels.empty:
-        messagebox.showinfo(
-            "No Records", f"No travel records found for {selected_name}."
-        )
-        # Clear previous records and chart
-        for widget in frame_records.winfo_children():
-            widget.destroy()
-        for widget in frame_chart.winfo_children():
-            widget.destroy()
-        current_fig = None
-        return
-
-    # Display records
-    for widget in frame_records.winfo_children():
+# -------------------------------
+# Plot Chart
+# -------------------------------
+def plot_chart(df):
+    for widget in chart_frame.winfo_children():
         widget.destroy()
-    for idx, row in traveler_travels.iterrows():
-        tk.Label(
-            frame_records,
-            text=f"{row['destination']} | {row['departure_date'].date()} → {row['return_date'].date()} | {row['purpose']}",
-            anchor="w",
-        ).pack(fill="x")
-
-    # Plot trips
-    fig, ax = plt.subplots(figsize=(6, 3))
-    durations = (
-        traveler_travels["return_date"] - traveler_travels["departure_date"]
-    ).dt.days
-    ax.bar(traveler_travels["destination"], durations, color="skyblue")
-    ax.set_title(f"{selected_name}'s Trips Duration")
-    ax.set_ylabel("Duration (days)")
+    if df.empty:
+        return
+    df["departure_date"] = pd.to_datetime(df["departure_date"])
+    df["return_date"] = pd.to_datetime(df["return_date"])
+    df["duration_days"] = (df["return_date"] - df["departure_date"]).dt.days
+    agg = df.groupby("destination")["duration_days"].sum().sort_values(ascending=False)
+    fig, ax = plt.subplots(figsize=(6, 4))
+    agg.plot(kind="bar", ax=ax, color="skyblue")
+    ax.set_title("Total Trip Duration by Destination")
+    ax.set_ylabel("Days")
     ax.set_xlabel("Destination")
-    plt.tight_layout()
-
-    # Embed chart in Tkinter
-    for widget in frame_chart.winfo_children():
-        widget.destroy()
-    canvas_fig = FigureCanvasTkAgg(fig, master=frame_chart)
-    canvas_fig.draw()
-    canvas_fig.get_tk_widget().pack(fill="both", expand=True)
-
-    current_fig = fig
+    plt.xticks(rotation=45)
+    canvas = FigureCanvasTkAgg(fig, master=chart_frame)
+    canvas.draw()
+    canvas.get_tk_widget().pack()
 
 
-def save_chart():
-    """Save current chart as PNG or PDF"""
-    if current_fig is None:
-        messagebox.showwarning("No Chart", "Please generate a chart first.")
-        return
+# -------------------------------
+# Save / Print Chart
+# -------------------------------
+def save_chart_png():
     file_path = filedialog.asksaveasfilename(
-        defaultextension=".png",
-        filetypes=[("PNG Image", "*.png"), ("PDF Document", "*.pdf")],
+        defaultextension=".png", filetypes=[("PNG Image", "*.png")]
     )
-    if not file_path:
-        return
-    if file_path.endswith(".png"):
-        current_fig.savefig(file_path)
-    else:
-        c = canvas.Canvas(file_path, pagesize=letter)
-        c.drawString(100, 750, "Traveler Travel Chart")
+    if file_path:
+        plt.savefig(file_path)
+        messagebox.showinfo("Saved", f"Chart saved as {file_path}")
+
+
+def save_chart_pdf():
+    file_path = filedialog.asksaveasfilename(
+        defaultextension=".pdf", filetypes=[("PDF File", "*.pdf")]
+    )
+    if file_path:
+        c = canvas.Canvas(file_path)
+        c.drawString(100, 750, "Travel Duration Chart")
         c.showPage()
         c.save()
-    messagebox.showinfo("Saved", f"Chart saved to {file_path}")
+        messagebox.showinfo("Saved", f"Chart PDF saved as {file_path}")
 
 
-def print_chart():
-    """Print current chart"""
-    if current_fig is None:
-        messagebox.showwarning("No Chart", "Please generate a chart first.")
-        return
-    file_path = "temp_print.png"
-    current_fig.savefig(file_path)
-    os.startfile(file_path, "print")
-
-
-# ------------------------------
+# -------------------------------
 # GUI Setup
-# ------------------------------
+# -------------------------------
 root = tk.Tk()
-root.title("Traveler & Travel Records App - Developed by Olusoji Matthew")
-root.geometry("900x650")
-root.config(bg="#e8f0fe")
+root.title("Traveler & Travel Records App")
+root.geometry("1000x700")
+root.config(bg="#f0f0f0")
 
-# Header
-tk.Label(
-    root,
-    text="🧳 Traveler & Travel Records Management",
-    font=("Segoe UI", 16, "bold"),
-    bg="#e8f0fe",
-).pack(pady=10)
+# Load Buttons
+btn_frame = tk.Frame(root, bg="#f0f0f0")
+btn_frame.pack(pady=10)
 
-# Load CSV Buttons
 tk.Button(
-    root,
-    text="Load Travelers CSV",
-    command=load_travelers_csv,
-    bg="#3498DB",
-    fg="white",
-).pack(pady=5)
-tk.Button(
-    root, text="Load Travels CSV", command=load_travels_csv, bg="#3498DB", fg="white"
-).pack(pady=5)
-
-# Traveler selection dropdown
-tk.Label(root, text="Select Traveler:", bg="#e8f0fe").pack()
-traveler_var = tk.StringVar()
-traveler_combo = ttk.Combobox(
-    root, textvariable=traveler_var, state="readonly", width=50
-)
-traveler_combo.pack(pady=5)
-
-# Show travels button
-tk.Button(
-    root, text="Show Travels & Plot", bg="#27AE60", fg="white", command=show_travels
-).pack(pady=10)
-
-# Frame to display travel records
-frame_records = tk.Frame(root, bg="#f0f0f0", height=100)
-frame_records.pack(fill="both", expand=False, padx=20, pady=5)
-
-# Frame to display chart
-frame_chart = tk.Frame(root, bg="#ffffff")
-frame_chart.pack(fill="both", expand=True, padx=20, pady=5)
-
-# Save & Print buttons
-tk.Button(
-    root, text="Save Chart (PNG/PDF)", bg="#F39C12", fg="white", command=save_chart
-).pack(side="left", padx=50, pady=10)
-tk.Button(root, text="Print Chart", bg="#E74C3C", fg="white", command=print_chart).pack(
-    side="right", padx=50, pady=10
+    btn_frame, text="Load Travelers CSV", command=lambda: load_travelers(None)
+).grid(row=0, column=0, padx=10)
+tk.Button(btn_frame, text="Load Travels CSV", command=lambda: load_travels(None)).grid(
+    row=0, column=1, padx=10
 )
 
-# Footer
-tk.Label(
-    root, text="Developed by Olusoji Matthew © 2025", bg="#e8f0fe", font=("Segoe UI", 9)
-).pack(side="bottom", pady=5)
+# Traveler Dropdown
+tk.Label(btn_frame, text="Select Traveler:", bg="#f0f0f0").grid(row=0, column=2, padx=5)
+traveler_dropdown = ttk.Combobox(btn_frame, state="readonly")
+traveler_dropdown.grid(row=0, column=3, padx=5)
+traveler_dropdown.bind("<<ComboboxSelected>>", on_traveler_select)
 
-# Load default CSVs if present
-load_default_csvs()
+# Tables
+traveler_table = ttk.Treeview(
+    root,
+    columns=("ID", "Name", "Email", "Phone", "Passport"),
+    show="headings",
+    height=8,
+)
+for col in traveler_table["columns"]:
+    traveler_table.heading(col, text=col)
+traveler_table.pack(pady=10, fill="x")
 
+travel_table = ttk.Treeview(
+    root,
+    columns=(
+        "Travel ID",
+        "Traveler ID",
+        "Destination",
+        "Departure",
+        "Return",
+        "Purpose",
+    ),
+    show="headings",
+    height=10,
+)
+for col in travel_table["columns"]:
+    travel_table.heading(col, text=col)
+travel_table.pack(pady=10, fill="x")
+
+# Chart Frame
+chart_frame = tk.Frame(root)
+chart_frame.pack(pady=10, fill="both", expand=True)
+
+# Save/Print Buttons
+chart_btn_frame = tk.Frame(root, bg="#f0f0f0")
+chart_btn_frame.pack(pady=10)
+tk.Button(chart_btn_frame, text="Save Chart as PNG", command=save_chart_png).grid(
+    row=0, column=0, padx=10
+)
+tk.Button(chart_btn_frame, text="Save Chart as PDF", command=save_chart_pdf).grid(
+    row=0, column=1, padx=10
+)
+
+# -------------------------------
+# Auto-load cleaned CSVs
+# -------------------------------
+load_travelers()
+load_travels()
+
+# Start GUI
 root.mainloop()
