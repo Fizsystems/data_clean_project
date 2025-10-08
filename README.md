@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Traveler & Travel Records Management App
 
 **Author:** Olusoji Matthew  
@@ -21,3 +22,6 @@ A Tkinter-based GUI app to manage travelers and travel records. Features:
    ```bash
    python -m venv venv
    venv\Scripts\activate   # Windows
+=======
+# data_clean_project
+>>>>>>> f0419bde5df6d508d99d91375d6c74ab2b65aee3
