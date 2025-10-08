@@ -1,0 +1,126 @@
+Project Structure
+data_clean_project/
+│
+├── travel_gui_app.py         # Main GUI app
+├── clean_travel_data.py      # Optional data cleaning script
+├── travelers.csv             # Sample travelers data
+├── travels.csv               # Sample travel records
+├── requirements.txt          # Dependencies
+└── README.md                 # Instructions
+
+1️⃣ Sample travelers.csv (50 travelers)
+traveler_id,name,email,phone,passport_number
+1,Olusoji Matthew,olusoji@example.com,08010000001,A100001
+2,Aisha Bello,aisha@example.com,08010000002,B100002
+3,Chinedu Okafor,chinedu@example.com,08010000003,C100003
+4,Fatima Musa,fatima@example.com,08010000004,D100004
+5,Emeka Nwosu,emeka@example.com,08010000005,E100005
+6,Grace Ade,grace@example.com,08010000006,F100006
+7,Hassan Abubakar,hassan@example.com,08010000007,G100007
+8,Ifeoma Uche,ifeoma@example.com,08010000008,H100008
+9,James Okoye,james@example.com,08010000009,I100009
+10,Kemi Adebayo,kemi@example.com,08010000010,J100010
+
+
+You can extend this to 50 travelers by copying the pattern.
+
+2️⃣ Sample travels.csv (200 travel records)
+travel_id,traveler_id,destination,departure_date,return_date,purpose
+101,1,Lagos,2025-01-10,2025-01-15,Business
+102,1,Abuja,2025-02-05,2025-02-10,Conference
+103,2,Lagos,2025-01-15,2025-01-20,Vacation
+104,3,Kaduna,2025-03-01,2025-03-05,Training
+105,4,Abuja,2025-04-10,2025-04-15,Meeting
+106,5,Lagos,2025-02-20,2025-02-25,Conference
+107,6,Kano,2025-05-01,2025-05-07,Business
+108,7,Port Harcourt,2025-06-10,2025-06-15,Vacation
+109,8,Enugu,2025-07-01,2025-07-05,Meeting
+110,9,Lagos,2025-08-12,2025-08-18,Training
+
+
+Repeat or extend to 200 records with different destinations, dates, and travelers.
+
+3️⃣ requirements.txt
+pandas
+matplotlib
+tk
+reportlab
+
+
+Install via:
+
+pip install -r requirements.txt
+
+4️⃣ README.md
+# Traveler & Travel Records Management App
+
+**Author:** Olusoji Matthew  
+**LinkedIn:** [Olusoji Matthew](https://www.linkedin.com/in/olusoji-matthew-aab97a23a)  
+**GitHub:** [Fizsystems](https://github.com/Fizsystems)
+
+## Description
+Tkinter-based GUI to manage travelers and travel records.
+
+### Features
+- Auto-load default CSVs (travelers.csv, travels.csv)
+- Load other CSVs
+- Display traveler travel records
+- Plot trip durations
+- Save charts as PNG/PDF
+- Print charts
+
+### Setup
+
+1. Create virtual environment:
+```powershell
+python -m venv venv
+.\venv\Scripts\activate
+
+
+Install requirements:
+
+pip install -r requirements.txt
+
+
+Run the app:
+
+python travel_gui_app.py
+
+CSV Structure
+
+travelers.csv
+
+traveler_id,name,email,phone,passport_number
+
+
+travels.csv
+
+travel_id,traveler_id,destination,departure_date,return_date,purpose
+
+
+---
+
+## ✅ Instructions to Run Immediately
+
+1. Save all files in `data_clean_project/`.  
+2. Open PowerShell in that folder.  
+3. Create virtual environment and activate:
+
+```powershell
+python -m venv venv
+.\venv\Scripts\activate
+
+
+Install packages:
+
+pip install -r requirements.txt
+
+
+Launch the app:
+
+python travel_gui_app.py
+
+
+Select a traveler from the dropdown → records and chart will display automatically.
+
+Use Save Chart or Print Chart buttons as needed.

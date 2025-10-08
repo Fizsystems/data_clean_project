@@ -1,0 +1,21 @@
+travel_id,traveler_id,destination,departure_date,return_date,purpose
+101,1,Lagos,2025-10-10,2025-10-15,Business
+102,1,Abuja,2025-11-05,2025-11-10,Conference
+103,2,Port Harcourt,2025-09-01,2025-09-05,Vacation
+104,2,Enugu,2025-09-15,2025-09-20,Business
+105,3,Paris,2025-10-05,2025-10-10,Leisure
+106,3,London,2025-12-01,2025-12-05,Conference
+107,4,London,2025-11-01,2025-11-05,Business
+108,4,Abuja,2025-11-15,2025-11-20,Vacation
+109,5,New York,2025-12-01,2025-12-10,Vacation
+110,5,Dubai,2025-12-15,2025-12-20,Business
+111,6,Johannesburg,2025-10-20,2025-10-25,Leisure
+112,6,Cairo,2025-11-10,2025-11-15,Business
+113,7,Nairobi,2025-09-25,2025-09-30,Vacation
+114,7,Lagos,2025-10-05,2025-10-10,Conference
+115,8,Abuja,2025-08-15,2025-08-20,Business
+116,8,Port Harcourt,2025-09-05,2025-09-10,Leisure
+117,9,Paris,2025-11-01,2025-11-05,Vacation
+118,9,London,2025-11-15,2025-11-20,Business
+119,10,Dubai,2025-10-10,2025-10-15,Leisure
+120,10,New York,2025-12-01,2025-12-05,Conference
